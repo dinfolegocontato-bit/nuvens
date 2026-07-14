@@ -1,0 +1,187 @@
+// Morada nas Nuvens — modelo de dados (PRD seção 3)
+// O banco nasce VAZIO. Nenhum seed, nenhum dado de demonstração.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Enums ----------
+
+enum ImovelStatus {
+  ATIVO
+  FUTURO
+  INATIVO
+}
+
+enum Plataforma {
+  AIRBNB
+  BOOKING
+  DIRETO
+}
+
+enum TipoReserva {
+  LAZER
+  TRABALHO
+  LONGA_TEMPORADA
+  GRUPO
+}
+
+enum StatusReserva {
+  CONFIRMADA
+  PENDENTE
+  CANCELADA
+}
+
+enum MotivoBloqueio {
+  BLOQUEIO
+  MANUTENCAO
+}
+
+enum TipoDespesa {
+  ENTRADA
+  SAIDA
+}
+
+enum StatusDespesa {
+  PAGO
+  PENDENTE
+}
+
+// ---------- Modelos ----------
+
+model Imovel {
+  id          String       @id @default(cuid())
+  nome        String
+  cidade      String
+  status      ImovelStatus @default(ATIVO)
+  capacidade  Int
+  quartos     Int
+  banheiros   Int
+  fotoUrl     String?
+  plataformas Plataforma[]
+
+  reservas   Reserva[]
+  bloqueios  Bloqueio[]
+  avaliacoes Avaliacao[]
+  despesas   Despesa[]
+
+  criadoEm DateTime @default(now())
+
+  @@map("imoveis")
+}
+
+model Hospede {
+  id          String  @id @default(cuid())
+  nome        String
+  email       String? @unique
+  telefone    String?
+  documento   String?
+  observacoes String?
+
+  reservas Reserva[]
+
+  criadoEm DateTime @default(now())
+
+  @@map("hospedes")
+}
+
+model Reserva {
+  id               String        @id @default(cuid())
+  imovelId         String
+  hospedeId        String
+  plataforma       Plataforma
+  tipo             TipoReserva
+  status           StatusReserva @default(CONFIRMADA)
+  codigoExterno    String?
+  checkin          DateTime      @db.Date
+  checkout         DateTime      @db.Date
+  numeroHospedes   Int
+  valorDiaria      Decimal       @db.Decimal(10, 2)
+  taxaLimpeza      Decimal       @default(0) @db.Decimal(10, 2)
+  taxasServicos    Decimal       @default(0) @db.Decimal(10, 2)
+  desconto         Decimal       @default(0) @db.Decimal(10, 2)
+  // Copiada da CONFIG no momento da criação — não reescreve histórico (PRD §3)
+  taxaPlataformaPct Decimal      @default(0) @db.Decimal(5, 2)
+  observacoes      String?
+  criadoEm         DateTime      @default(now())
+
+  imovel    Imovel     @relation(fields: [imovelId], references: [id])
+  hospede   Hospede    @relation(fields: [hospedeId], references: [id])
+  avaliacao Avaliacao?
+
+  @@index([imovelId])
+  @@index([hospedeId])
+  @@index([checkin, checkout])
+  @@map("reservas")
+}
+
+model Bloqueio {
+  id       String         @id @default(cuid())
+  imovelId String
+  motivo   MotivoBloqueio @default(BLOQUEIO)
+  inicio   DateTime       @db.Date
+  fim      DateTime       @db.Date
+  nota     String?
+
+  imovel Imovel @relation(fields: [imovelId], references: [id], onDelete: Cascade)
+
+  criadoEm DateTime @default(now())
+
+  @@index([imovelId])
+  @@map("bloqueios")
+}
+
+model Despesa {
+  id        String        @id @default(cuid())
+  imovelId  String? // opcional
+  data      DateTime      @db.Date
+  descricao String
+  categoria String // livre — as categorias surgem do que a Mariana lança
+  fornecedor String?
+  tipo      TipoDespesa
+  valor     Decimal       @db.Decimal(10, 2)
+  status    StatusDespesa @default(PENDENTE)
+
+  imovel Imovel? @relation(fields: [imovelId], references: [id], onDelete: SetNull)
+
+  criadoEm DateTime @default(now())
+
+  @@index([imovelId])
+  @@index([data])
+  @@map("despesas")
+}
+
+model Avaliacao {
+  id              String     @id @default(cuid())
+  imovelId        String
+  reservaId       String?    @unique // opcional
+  hospedeNome     String
+  plataforma      Plataforma
+  nota            Int // 1..5
+  data            DateTime   @db.Date
+  comentario      String?
+  respostaEnviada String?
+
+  imovel  Imovel   @relation(fields: [imovelId], references: [id], onDelete: Cascade)
+  reserva Reserva? @relation(fields: [reservaId], references: [id], onDelete: SetNull)
+
+  criadoEm DateTime @default(now())
+
+  @@index([imovelId])
+  @@map("avaliacoes")
+}
+
+model Config {
+  id                String  @id @default("singleton")
+  saldoInicialCaixa Decimal @default(0) @db.Decimal(12, 2)
+  taxaAirbnbPct     Decimal @default(15) @db.Decimal(5, 2)
+  taxaBookingPct    Decimal @default(18) @db.Decimal(5, 2)
+  taxaDiretoPct     Decimal @default(0) @db.Decimal(5, 2)
+
+  @@map("config")
+}
