@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   Design system — Morada nas Nuvens (PRD seção 5)
+   ============================================================ */
+:root {
+  /* Cores */
+  --bg-app: #f8fafc; /* slate-50 — fundo da área de conteúdo */
+  --bg-surface: #ffffff; /* cards e sidebar */
+  --border: #e2e8f0; /* slate-200 — borda de card 1px */
+  --text-strong: #0f172a; /* títulos */
+  --text: #334155; /* corpo */
+  --text-muted: #94a3b8; /* labels, legendas */
+
+  --primary: #065f46; /* emerald-800 — botão principal */
+  --primary-hover: #064e3b;
+  --primary-soft: #ecfdf5; /* emerald-50 — item ativo da sidebar, KPI verde */
+  --primary-text: #047857;
+
+  --airbnb: #ff5a5f;
+  --booking: #1d4ed8;
+  --direto: #059669;
+
+  --ok: #10b981;
+  --ok-soft: #ecfdf5;
+  --warn: #f59e0b;
+  --warn-soft: #fffbeb;
+  --danger: #f43f5e;
+  --danger-soft: #fff1f2;
+  --info: #3b82f6;
+  --info-soft: #eff6ff;
+  --ia: #8b5cf6; /* violeta = tudo que é IA */
+  --ia-soft: #f5f3ff;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    background-color: var(--bg-app);
+    color: var(--text);
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4 {
+    color: var(--text-strong);
+  }
+  /* Foco visível (acessibilidade — PRD Fase 10) */
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+}
