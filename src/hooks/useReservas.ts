@@ -66,6 +66,7 @@ export function useCriarReserva() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["reservas"] });
       qc.invalidateQueries({ queryKey: ["metricas"] });
+      qc.invalidateQueries({ queryKey: ["calendario"] });
       toast.success("Reserva criada.");
     },
     // Erros (inclusive 409 de conflito) são tratados na tela para exibir inline.
@@ -83,6 +84,7 @@ export function useAtualizarReserva() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["reservas"] });
       qc.invalidateQueries({ queryKey: ["metricas"] });
+      qc.invalidateQueries({ queryKey: ["calendario"] });
       toast.success("Reserva atualizada.");
     },
   });
@@ -99,6 +101,7 @@ export function useMudarStatusReserva() {
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["reservas"] });
       qc.invalidateQueries({ queryKey: ["metricas"] });
+      qc.invalidateQueries({ queryKey: ["calendario"] });
       const msg =
         vars.status === "CANCELADA"
           ? "Reserva cancelada."
@@ -120,6 +123,7 @@ export function useExcluirReserva() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["reservas"] });
       qc.invalidateQueries({ queryKey: ["metricas"] });
+      qc.invalidateQueries({ queryKey: ["calendario"] });
       toast.success("Reserva excluída.");
     },
     onError: (e) =>
