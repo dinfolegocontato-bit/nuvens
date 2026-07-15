@@ -128,3 +128,24 @@ export const reservaUpdateSchema = z
   );
 
 export type ReservaUpdateInput = z.infer<typeof reservaUpdateSchema>;
+
+// ---------- Bloqueio ----------
+
+export const bloqueioCreateSchema = z
+  .object({
+    imovelId: z.string().min(1, "Escolha o chalé."),
+    motivo: zMotivoBloqueio.default("BLOQUEIO"),
+    inicio: dataISO,
+    fim: dataISO,
+    nota: z
+      .string()
+      .trim()
+      .optional()
+      .or(z.literal("").transform(() => undefined)),
+  })
+  .refine((d) => d.fim >= d.inicio, {
+    message: "A data final não pode ser antes da inicial.",
+    path: ["fim"],
+  });
+
+export type BloqueioCreateInput = z.infer<typeof bloqueioCreateSchema>;

@@ -95,6 +95,41 @@ export interface MetricasResposta {
   }[];
 }
 
+export type MotivoBloqueioValor = "BLOQUEIO" | "MANUTENCAO";
+
+export interface BloqueioDTO {
+  id: string;
+  imovelId: string;
+  motivo: MotivoBloqueioValor;
+  inicio: string; // yyyy-mm-dd
+  fim: string; // yyyy-mm-dd
+  nota: string | null;
+}
+
+export interface CalendarioResposta {
+  mes: number;
+  ano: number;
+  imoveis: {
+    id: string;
+    nome: string;
+    capacidade: number;
+    fotoUrl: string | null;
+    status: ImovelStatusValor;
+  }[];
+  reservas: {
+    id: string;
+    imovelId: string;
+    hospedeNome: string;
+    plataforma: PlataformaValor;
+    status: StatusReservaValor;
+    checkin: string;
+    checkout: string;
+    numeroHospedes: number;
+    valorTotal: number;
+  }[];
+  bloqueios: BloqueioDTO[];
+}
+
 export interface ConfigDTO {
   id: string;
   saldoInicialCaixa: number;
