@@ -260,6 +260,45 @@ export interface AvaliacoesResposta {
   avaliacoes: AvaliacaoDTO[];
 }
 
+export interface AnalyticsResposta {
+  mes: number;
+  ano: number;
+  kpis: {
+    receitaTotal: number;
+    ocupacao: number;
+    noitesVendidas: number;
+    adr: number;
+    revpar: number;
+    avaliacaoMedia: number | null;
+    totalAvaliacoes: number;
+  };
+  deltas: {
+    receitaTotal: number | null;
+    ocupacao: number | null;
+    noitesVendidas: number | null;
+    adr: number | null;
+    revpar: number | null;
+  };
+  /** séries curtas (6 meses) para os sparklines dos KPIs */
+  sparklines: {
+    receitaTotal: { v: number }[];
+    ocupacao: { v: number }[];
+    noitesVendidas: { v: number }[];
+    adr: { v: number }[];
+    revpar: { v: number }[];
+  };
+  receitaAoLongo: { dia: number; atual: number; anterior: number }[];
+  desempenhoPorPlataforma: { plataforma: PlataformaValor; receita: number; pct: number }[];
+  distribuicaoPorCanal: { plataforma: PlataformaValor; quantidade: number }[];
+  ocupacaoPorImovel: { imovel: string; atual: number; anterior: number }[];
+  antecedencia: { mediaDias: number; serie: { rotulo: string; dias: number }[] };
+  diasSemana: { dia: string; quantidade: number; pct: number }[];
+  comparativoMensal: { rotulo: string; receita: number; ocupacao: number }[];
+  melhorDesempenho: { imovel: string; receita: number; ocupacao: number } | null;
+  /** true quando ainda não há reservas suficientes para analisar */
+  semDados: boolean;
+}
+
 export interface ConfigDTO {
   id: string;
   saldoInicialCaixa: number;
