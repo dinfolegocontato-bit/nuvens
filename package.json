@@ -12,6 +12,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "gerar-hash": "node scripts/gerar-hash.mjs",
+    "env:producao": "node scripts/gerar-env-producao.mjs",
     "postinstall": "prisma generate"
   },
   "prisma": {

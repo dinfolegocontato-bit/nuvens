@@ -56,15 +56,40 @@ reserva cancelada, gastos, deltas e bordas (fevereiro bissexto, virada de ano).
 
 ## Deploy (Vercel + Neon)
 
-1. **Banco (Neon):** crie um projeto, copie a connection string (com `?sslmode=require`).
-2. **Vercel:** importe o repositório e configure as variáveis de ambiente da tabela acima
-   (`DATABASE_URL` apontando para o Neon).
-3. **Migrations:** o `build` roda `prisma generate`. Aplique o schema no banco de produção com:
+Status: **GitHub ✅ · Neon ✅ · Vercel ⏳**
+
+### Já feito
+- Código no GitHub (`main`).
+- Banco Neon criado (região `sa-east-1`) e **schema aplicado** com `prisma migrate deploy`.
+  O banco de produção está **vazio**, como manda a regra 1.
+
+### Falta: publicar no Vercel
+
+1. Em **vercel.com**, entre com o GitHub e importe este repositório.
+2. Antes de clicar em Deploy, abra **Environment Variables** e preencha:
+
+   | Variável | Onde conseguir |
+   |---|---|
+   | `DATABASE_URL` | connection string do Neon (com `?sslmode=require`) |
+   | `AUTH_EMAIL` | o e-mail de login da Mariana |
+   | `AUTH_SECRET` | rode `npm run env:producao "<senha>"` |
+   | `AUTH_PASSWORD_HASH` | idem — sai no mesmo comando |
+   | `ANTHROPIC_API_KEY` | opcional; sem ela a IA fica desligada e o resto funciona |
+
+   > No Vercel os valores vão **crus** — sem aspas e **sem escapar o `$`**.
+   > O escape `\$` só vale no `.env` local, onde o Next expande variáveis.
+
+3. Deploy.
+4. Ao trocar o schema no futuro, reaplique com:
    ```bash
    DATABASE_URL="<url-do-neon>" npx prisma migrate deploy
    ```
-4. **`AUTH_SECRET`:** gere um novo para produção — não reaproveite o de desenvolvimento.
-5. Confirme que `ANTHROPIC_API_KEY` está só nas variáveis do servidor (nunca com prefixo `NEXT_PUBLIC_`).
+
+> ⚠️ O plano **Hobby do Vercel é gratuito, mas para uso não-comercial**. Como isto opera
+> uma pousada real, o enquadramento correto é o **Pro**.
+
+> 🔐 Se a senha do Neon já circulou em algum lugar (chat, e-mail, print), resete-a em
+> **Neon → Connection Details → Reset password** e atualize a variável no Vercel.
 
 ## Estrutura
 
