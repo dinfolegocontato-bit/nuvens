@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import Image from "next/image";
 import {
   Plus,
   MoreHorizontal,
@@ -14,6 +15,10 @@ import {
   ChevronLeft,
   ChevronRight,
   CalendarCheck,
+  LogIn,
+  LogOut,
+  Wallet,
+  Home,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FiltrosPagina } from "@/components/layout/FiltrosPagina";
@@ -23,8 +28,11 @@ import { PlataformaBadge } from "@/components/common/PlataformaBadge";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { FormReservaEdit } from "@/components/reservas/FormReservaEdit";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { KpiCard } from "@/components/kpi/KpiCard";
+import { DonutPlataformas } from "@/components/dashboard/DonutPlataformas";
+import { Sparkline } from "@/components/analytics/Sparkline";
 import {
   Table,
   TableBody,
@@ -41,13 +49,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { formatBRL, formatData } from "@/lib/formatters";
+import { formatBRL, formatData, formatNumero } from "@/lib/formatters";
 import {
   useReservas,
   useMudarStatusReserva,
   useExcluirReserva,
   type FiltrosReservas,
 } from "@/hooks/useReservas";
+import { useMetricas } from "@/hooks/useMetricas";
 import type { ReservaDTO, StatusReservaValor } from "@/lib/tipos";
 
 const ABAS: { chave: string; label: string; status?: StatusReservaValor }[] = [
@@ -79,6 +88,8 @@ export function ReservasView() {
   );
 
   const { data, isLoading, isError, refetch } = useReservas(filtros);
+  // KPIs e séries vêm do servidor (regra 4 — cliente não calcula métrica)
+  const { data: m } = useMetricas(mes, ano);
   const mudarStatus = useMudarStatusReserva();
   const excluir = useExcluirReserva();
 
@@ -114,7 +125,20 @@ export function ReservasView() {
         }
       />
 
-      <Card className="p-0">
+      {/* 6 KPIs (PRD §6.3) */}
+      {m && (
+        <div className="flex flex-wrap gap-5">
+          <KpiCard rotulo="Total" valor={formatNumero(m.reservasResumo.total)} icon={CalendarCheck} tom="primary" />
+          <KpiCard rotulo="Confirmadas" valor={formatNumero(m.reservasResumo.confirmadas)} icon={CircleCheck} tom="ok" />
+          <KpiCard rotulo="Check-ins do mês" valor={formatNumero(m.reservasResumo.checkins)} icon={LogIn} tom="info" />
+          <KpiCard rotulo="Check-outs do mês" valor={formatNumero(m.reservasResumo.checkouts)} icon={LogOut} tom="warn" />
+          <KpiCard rotulo="Canceladas" valor={formatNumero(m.reservasResumo.canceladas)} icon={Ban} tom="danger" />
+          <KpiCard rotulo="Receita do período" valor={formatBRL(m.reservasResumo.receitaLiquida)} icon={Wallet} tom="primary" />
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-4">
+      <Card className="p-0 xl:col-span-3">
         {/* Abas */}
         <div className="flex gap-1 overflow-x-auto border-b border-border px-3">
           {ABAS.map((a) => (
@@ -278,6 +302,89 @@ export function ReservasView() {
           </>
         )}
       </Card>
+
+        {/* Coluna direita (PRD §6.3) */}
+        <div className="flex flex-col gap-5">
+          <Card>
+            <CardTitle className="mb-3">Próxima chegada</CardTitle>
+            {m?.proximaChegada ? (
+              <div className="flex flex-col gap-3">
+                {m.proximaChegada.imovelFoto ? (
+                  <div className="relative h-28 w-full overflow-hidden rounded-xl">
+                    <Image
+                      src={m.proximaChegada.imovelFoto}
+                      alt={m.proximaChegada.imovelNome}
+                      fill
+                      sizes="280px"
+                      className="object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex h-28 w-full items-center justify-center rounded-xl bg-gradient-to-br from-primary-soft to-sky-100 text-primary-text">
+                    <Home className="h-8 w-8" />
+                  </div>
+                )}
+                <div>
+                  <p className="font-medium text-strong">{m.proximaChegada.hospedeNome}</p>
+                  <p className="text-legenda text-muted-foreground">
+                    {m.proximaChegada.imovelNome}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between text-body">
+                  <span className="text-muted-foreground">
+                    {formatData(m.proximaChegada.checkin)} → {formatData(m.proximaChegada.checkout)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-legenda text-muted-foreground">
+                    {m.proximaChegada.noites} noite(s)
+                  </span>
+                  <span className="font-semibold text-strong">
+                    {formatBRL(m.proximaChegada.valorTotal)}
+                  </span>
+                </div>
+                <Button variant="outline" className="w-full" asChild>
+                  <Link href="/calendario">Ver detalhes</Link>
+                </Button>
+              </div>
+            ) : (
+              <p className="py-6 text-center text-legenda text-muted-foreground">
+                Nenhuma chegada prevista.
+              </p>
+            )}
+          </Card>
+
+          <Card>
+            <CardTitle className="mb-4">Distribuição por plataforma</CardTitle>
+            {m && m.reservasPorPlataforma.length > 0 ? (
+              <DonutPlataformas dados={m.reservasPorPlataforma} />
+            ) : (
+              <p className="py-4 text-center text-legenda text-muted-foreground">
+                Sem reservas no período.
+              </p>
+            )}
+          </Card>
+
+          <Card>
+            <CardTitle className="mb-1">Reservas por mês</CardTitle>
+            {m && (
+              <>
+                <p className="text-kpi-valor text-strong">
+                  {formatNumero(
+                    m.reservasPorMes[m.reservasPorMes.length - 1]?.quantidade ?? 0
+                  )}
+                </p>
+                <p className="mb-2 text-legenda text-muted-foreground">
+                  {m.reservasPorMes[0]?.rotulo} — {m.reservasPorMes[m.reservasPorMes.length - 1]?.rotulo}
+                </p>
+                <Sparkline
+                  dados={m.reservasPorMes.map((x) => ({ v: x.quantidade }))}
+                />
+              </>
+            )}
+          </Card>
+        </div>
+      </div>
 
       <FormReservaEdit
         reserva={emEdicao}

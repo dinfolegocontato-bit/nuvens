@@ -4,12 +4,16 @@ import {
   metricasDoMes,
   mesAnterior,
   delta,
+  noites,
   noitesNoMes,
   diasNoMes,
+  paraDataUTC,
+  valorTotalReserva,
   receitaLiquidaPorDia,
   type ReservaCalc,
   type DespesaCalc,
 } from "@/lib/metricas";
+import { nomeMes } from "@/lib/formatters";
 import type { MetricasResposta, PlataformaValor } from "@/lib/tipos";
 
 function iso(d: Date): string {
@@ -22,6 +26,18 @@ function acumular(arr: number[]): number[] {
   return arr.map((v) => (soma += v));
 }
 
+/** desloca mes/ano por N meses (delta pode ser negativo). */
+function deslocarMes(mes: number, ano: number, d: number) {
+  const zero = ano * 12 + (mes - 1) + d;
+  return { mes: (zero % 12) + 1, ano: Math.floor(zero / 12) };
+}
+
+/** a data cai no mês/ano? */
+function dataNoMes(d: Date | string, mes: number, ano: number): boolean {
+  const t = paraDataUTC(d);
+  return t.getUTCFullYear() === ano && t.getUTCMonth() === mes - 1;
+}
+
 /** Calcula TODOS os KPIs do mês + séries/listas do dashboard + comparação com o mês anterior. */
 export async function calcularMetricas(
   mes: number,
@@ -29,7 +45,9 @@ export async function calcularMetricas(
 ): Promise<MetricasResposta> {
   const ant = mesAnterior(mes, ano);
 
-  const janelaInicio = new Date(Date.UTC(ant.ano, ant.mes - 1, 1));
+  // Janela: 6 meses para trás (o sparkline "Reservas por mês" da §6.3 precisa disso)
+  const inicioSeis = deslocarMes(mes, ano, -5);
+  const janelaInicio = new Date(Date.UTC(inicioSeis.ano, inicioSeis.mes - 1, 1));
   const janelaFim = new Date(Date.UTC(ano, mes, 1));
   const hoje = new Date();
   const hojeUTC = new Date(Date.UTC(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()));
@@ -133,6 +151,38 @@ export async function calcularMetricas(
     quantidade,
   }));
 
+  // ---- KPIs da tela de Reservas (§6.3) ----
+  // "Total" inclui as canceladas (elas continuam listadas, com badge — RN05).
+  const todasDoMes = reservas.filter(
+    (r) => noitesNoMes(r.checkin, r.checkout, mes, ano) > 0
+  );
+  const reservasResumo = {
+    total: todasDoMes.length,
+    confirmadas: todasDoMes.filter((r) => r.status === "CONFIRMADA").length,
+    canceladas: todasDoMes.filter((r) => r.status === "CANCELADA").length,
+    // Chegadas/saídas que de fato acontecem no mês (cancelada não tem check-in)
+    checkins: reservas.filter(
+      (r) => r.status !== "CANCELADA" && dataNoMes(r.checkin, mes, ano)
+    ).length,
+    checkouts: reservas.filter(
+      (r) => r.status !== "CANCELADA" && dataNoMes(r.checkout, mes, ano)
+    ).length,
+    receitaLiquida: atual.receitaLiquida,
+  };
+
+  // Sparkline "Reservas por mês" — últimos 6 meses (não canceladas)
+  const reservasPorMes = Array.from({ length: 6 }, (_, i) => {
+    const p = deslocarMes(mes, ano, -(5 - i));
+    return {
+      rotulo: `${nomeMes(p.mes).slice(0, 3)}/${String(p.ano).slice(2)}`,
+      quantidade: reservas.filter(
+        (r) =>
+          r.status !== "CANCELADA" &&
+          noitesNoMes(r.checkin, r.checkout, p.mes, p.ano) > 0
+      ).length,
+    };
+  });
+
   // Ocupação por chalé
   const diasMes = diasNoMes(mes, ano);
   const ocupacaoPorChale = imoveisAtivos.map((im) => {
@@ -185,5 +235,26 @@ export async function calcularMetricas(
       data: iso(d.data),
       status: d.status,
     })),
+    reservasResumo,
+    reservasPorMes,
+    proximaChegada: chegadasRaw[0]
+      ? {
+          id: chegadasRaw[0].id,
+          hospedeNome: chegadasRaw[0].hospede.nome,
+          imovelNome: chegadasRaw[0].imovel.nome,
+          imovelFoto: chegadasRaw[0].imovel.fotoUrl,
+          checkin: iso(chegadasRaw[0].checkin),
+          checkout: iso(chegadasRaw[0].checkout),
+          noites: noites(chegadasRaw[0].checkin, chegadasRaw[0].checkout),
+          valorTotal: valorTotalReserva({
+            valorDiaria: Number(chegadasRaw[0].valorDiaria),
+            taxaLimpeza: Number(chegadasRaw[0].taxaLimpeza),
+            taxasServicos: Number(chegadasRaw[0].taxasServicos),
+            desconto: Number(chegadasRaw[0].desconto),
+            checkin: chegadasRaw[0].checkin,
+            checkout: chegadasRaw[0].checkout,
+          }),
+        }
+      : null,
   };
 }

@@ -93,6 +93,28 @@ export interface MetricasResposta {
     data: string;
     status: string;
   }[];
+  /** KPIs da tela de Reservas (§6.3) */
+  reservasResumo: {
+    total: number;
+    confirmadas: number;
+    canceladas: number;
+    checkins: number;
+    checkouts: number;
+    receitaLiquida: number;
+  };
+  /** Sparkline "Reservas por mês" (§6.3) — últimos 6 meses */
+  reservasPorMes: { rotulo: string; quantidade: number }[];
+  /** Card "Próxima chegada" (§6.3) — a primeira das próximas chegadas, com valor */
+  proximaChegada: {
+    id: string;
+    hospedeNome: string;
+    imovelNome: string;
+    imovelFoto: string | null;
+    checkin: string;
+    checkout: string;
+    noites: number;
+    valorTotal: number;
+  } | null;
 }
 
 export type MotivoBloqueioValor = "BLOQUEIO" | "MANUTENCAO";
