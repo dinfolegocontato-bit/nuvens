@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getConfig } from "@/lib/config";
+import { iaConfigurada } from "@/lib/anthropic";
 import { erroValidacao, erroInterno } from "@/lib/api";
 import { z, ZodError } from "zod";
 
@@ -13,11 +15,36 @@ const configUpdateSchema = z.object({
   taxaDiretoPct: taxa.optional(),
 });
 
+/**
+ * Prisma serializa Decimal como STRING no JSON. O ConfigDTO promete number, e o
+ * cálculo do resumo ao vivo do wizard descarta não-números (viraria taxa 0%).
+ * Converte aqui para o contrato bater com o tipo.
+ */
+function configParaDTO(c: {
+  id: string;
+  saldoInicialCaixa: Prisma.Decimal;
+  taxaAirbnbPct: Prisma.Decimal;
+  taxaBookingPct: Prisma.Decimal;
+  taxaDiretoPct: Prisma.Decimal;
+}) {
+  return {
+    id: c.id,
+    saldoInicialCaixa: Number(c.saldoInicialCaixa),
+    taxaAirbnbPct: Number(c.taxaAirbnbPct),
+    taxaBookingPct: Number(c.taxaBookingPct),
+    taxaDiretoPct: Number(c.taxaDiretoPct),
+  };
+}
+
 // GET /api/config
 export async function GET() {
   try {
     const config = await getConfig();
-    return NextResponse.json(config);
+    // iaConfigurada é só um booleano — a chave em si nunca sai do servidor (PRD §1)
+    return NextResponse.json({
+      ...configParaDTO(config),
+      iaConfigurada: iaConfigurada(),
+    });
   } catch (e) {
     return erroInterno(e);
   }
@@ -32,7 +59,10 @@ export async function PATCH(req: NextRequest) {
       where: { id: "singleton" },
       data: dados,
     });
-    return NextResponse.json(config);
+    return NextResponse.json({
+      ...configParaDTO(config),
+      iaConfigurada: iaConfigurada(),
+    });
   } catch (e) {
     if (e instanceof ZodError) return erroValidacao(e);
     return erroInterno(e);

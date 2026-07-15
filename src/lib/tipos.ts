@@ -320,6 +320,8 @@ export interface ConfigDTO {
   taxaAirbnbPct: number;
   taxaBookingPct: number;
   taxaDiretoPct: number;
+  /** true = ANTHROPIC_API_KEY presente no servidor (a chave nunca vem junto) */
+  iaConfigurada?: boolean;
 }
 
 export interface ListaReservas {
