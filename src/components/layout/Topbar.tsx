@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { Search, Bell, CircleCheck } from "lucide-react";
 import { subtituloDe } from "@/lib/navegacao";
 import { UserMenu } from "@/components/layout/UserMenu";
+import { MenuMobile } from "@/components/layout/Sidebar";
 
 function saudacao(): string {
   const h = new Date().getHours();
@@ -24,14 +25,17 @@ export function Topbar({
 
   return (
     <div className="flex flex-col gap-4 pb-6 lg:flex-row lg:items-start lg:justify-between">
-      {/* Saudação + subtítulo */}
-      <div>
-        <h1 className="text-h1 font-bold text-strong">
-          {saudacao()}, {nome}! 👋
-        </h1>
-        {subtitulo && (
-          <p className="mt-1 text-body text-muted-foreground">{subtitulo}</p>
-        )}
+      {/* Saudação + subtítulo (com o menu em gaveta abaixo de 1024px) */}
+      <div className="flex items-start gap-3">
+        <MenuMobile />
+        <div>
+          <h1 className="text-h1 font-bold text-strong">
+            {saudacao()}, {nome}! 👋
+          </h1>
+          {subtitulo && (
+            <p className="mt-1 text-body text-muted-foreground">{subtitulo}</p>
+          )}
+        </div>
       </div>
 
       {/* Ações à direita */}
