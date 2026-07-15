@@ -9,6 +9,7 @@ import {
   reservasSobrepoem,
   reservaConflitaBloqueio,
   metricasDoMes,
+  receitaLiquidaPorDia,
   delta,
   mesAnterior,
   type ReservaCalc,
@@ -199,6 +200,34 @@ describe("metricasDoMes", () => {
     });
     expect(m.ocupacao).toBeCloseTo((5 / (2 * 31)) * 100, 5);
     expect(m.revpar).toBeCloseTo(1100 / (2 * 31), 5);
+  });
+});
+
+describe("receitaLiquidaPorDia", () => {
+  it("distribui a receita líquida por noite nos dias do mês", () => {
+    // 05→08/07: 3 noites (05,06,07), diária 100, taxa 0 → líquido 300 → 100/dia
+    const arr = receitaLiquidaPorDia(
+      [
+        {
+          checkin: "2026-07-05",
+          checkout: "2026-07-08",
+          status: "CONFIRMADA",
+          valorDiaria: 100,
+          taxaLimpeza: 0,
+          taxasServicos: 0,
+          desconto: 0,
+          taxaPlataformaPct: 0,
+        },
+      ],
+      7,
+      2026
+    );
+    expect(arr).toHaveLength(31);
+    expect(arr[4]).toBeCloseTo(100, 5); // dia 5
+    expect(arr[5]).toBeCloseTo(100, 5); // dia 6
+    expect(arr[6]).toBeCloseTo(100, 5); // dia 7
+    expect(arr[7]).toBe(0); // dia 8 (check-out, sem noite)
+    expect(arr.reduce((a, b) => a + b, 0)).toBeCloseTo(300, 5);
   });
 });
 

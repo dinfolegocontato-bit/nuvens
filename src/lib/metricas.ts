@@ -236,3 +236,35 @@ export function delta(atual: number, anterior: number): number | null {
 export function mesAnterior(mes: number, ano: number): { mes: number; ano: number } {
   return mes === 1 ? { mes: 12, ano: ano - 1 } : { mes: mes - 1, ano };
 }
+
+/**
+ * Receita líquida distribuída por dia do mês (cada noite da reserva recebe
+ * valorLiquido / noites). Índice 0 = dia 1. Reservas CANCELADAS ficam de fora.
+ */
+export function receitaLiquidaPorDia(
+  reservas: ReservaCalc[],
+  mes: number,
+  ano: number
+): number[] {
+  const dias = diasNoMes(mes, ano);
+  const arr = new Array<number>(dias).fill(0);
+  const mInicio = Date.UTC(ano, mes - 1, 1);
+  const mFim = Date.UTC(ano, mes, 1);
+
+  for (const r of reservas) {
+    if (r.status === "CANCELADA") continue;
+    const nTot = noites(r.checkin, r.checkout);
+    if (nTot <= 0) continue;
+    const porNoite = valorLiquidoReserva(r) / nTot;
+
+    let t = paraDataUTC(r.checkin).getTime();
+    for (let i = 0; i < nTot; i++) {
+      if (t >= mInicio && t < mFim) {
+        const dia = new Date(t).getUTCDate();
+        arr[dia - 1] += porNoite;
+      }
+      t += MS_DIA;
+    }
+  }
+  return arr;
+}

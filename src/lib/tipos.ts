@@ -72,6 +72,27 @@ export interface MetricasResposta {
     margem: number | null;
   };
   avaliacao: { media: number | null; total: number };
+  // Séries e listas para os gráficos do Dashboard (§6.2)
+  series: {
+    receitaDiaria: { dia: number; atual: number; anterior: number }[];
+  };
+  reservasPorPlataforma: { plataforma: PlataformaValor; quantidade: number }[];
+  ocupacaoPorChale: { imovel: string; ocupacao: number }[];
+  proximasChegadas: {
+    id: string;
+    hospedeNome: string;
+    imovelNome: string;
+    imovelFoto: string | null;
+    checkin: string;
+    noites: number;
+  }[];
+  contasAPagar: {
+    id: string;
+    descricao: string;
+    valor: number;
+    data: string;
+    status: string;
+  }[];
 }
 
 export interface ConfigDTO {
