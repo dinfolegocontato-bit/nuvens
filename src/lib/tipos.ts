@@ -130,6 +130,75 @@ export interface CalendarioResposta {
   bloqueios: BloqueioDTO[];
 }
 
+export type TipoDespesaValor = "ENTRADA" | "SAIDA";
+export type StatusDespesaValor = "PAGO" | "PENDENTE";
+
+export interface DespesaDTO {
+  id: string;
+  imovelId: string | null;
+  data: string; // yyyy-mm-dd
+  descricao: string;
+  categoria: string;
+  fornecedor: string | null;
+  tipo: TipoDespesaValor;
+  valor: number;
+  status: StatusDespesaValor;
+}
+
+/** Linha da tabela "Transações recentes" (§6.5) */
+export interface TransacaoDTO {
+  id: string;
+  data: string;
+  descricao: string;
+  categoria: string;
+  origem: string | null;
+  tipo: TipoDespesaValor;
+  valor: number;
+  status: StatusDespesaValor;
+  /** true = veio de reserva confirmada (somente leitura) */
+  automatico: boolean;
+}
+
+export interface PontoEvolucao {
+  rotulo: string;
+  mes: number;
+  ano: number;
+  receitaLiquida: number;
+  gastos: number;
+  lucro: number;
+}
+
+export interface FinanceiroResposta {
+  mes: number;
+  ano: number;
+  kpis: {
+    receitaLiquida: number;
+    receitaBruta: number;
+    gastos: number;
+    lucroLiquido: number;
+    margem: number;
+  };
+  deltas: {
+    receitaLiquida: number | null;
+    receitaBruta: number | null;
+    gastos: number | null;
+    lucroLiquido: number | null;
+    margem: number | null;
+  };
+  evolucaoSeisMeses: PontoEvolucao[];
+  evolucaoAno: PontoEvolucao[];
+  gastosPorCategoria: { categoria: string; valor: number; pct: number }[];
+  fluxoCaixa: {
+    saldoInicial: number;
+    entradas: number;
+    saidas: number;
+    saldoAtual: number;
+  };
+  resumoPorPlataforma: { plataforma: PlataformaValor; receita: number; pct: number }[];
+  transacoes: TransacaoDTO[];
+  contasAPagar: DespesaDTO[];
+}
+
 export interface ConfigDTO {
   id: string;
   saldoInicialCaixa: number;

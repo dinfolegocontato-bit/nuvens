@@ -149,3 +149,29 @@ export const bloqueioCreateSchema = z
   });
 
 export type BloqueioCreateInput = z.infer<typeof bloqueioCreateSchema>;
+
+// ---------- Despesa (lançamento manual) ----------
+
+export const despesaCreateSchema = z.object({
+  data: dataISO,
+  descricao: z.string().trim().min(1, "Descreva o lançamento."),
+  // O PRD não enumera as categorias — elas surgem do que a Mariana lança.
+  categoria: z.string().trim().min(1, "Informe a categoria."),
+  fornecedor: z
+    .string()
+    .trim()
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+  tipo: zTipoDespesa.default("SAIDA"),
+  valor: z.coerce.number().min(0.01, "Informe o valor."),
+  status: zStatusDespesa.default("PENDENTE"),
+  imovelId: z
+    .string()
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+});
+
+export const despesaUpdateSchema = despesaCreateSchema.partial();
+
+export type DespesaCreateInput = z.infer<typeof despesaCreateSchema>;
+export type DespesaUpdateInput = z.infer<typeof despesaUpdateSchema>;
