@@ -53,6 +53,27 @@ export interface ReservaDTO {
   valorLiquido: number;
 }
 
+import type { MetricasMes } from "@/lib/metricas";
+
+export interface MetricasResposta {
+  mes: number;
+  ano: number;
+  atual: MetricasMes;
+  anterior: MetricasMes;
+  deltas: {
+    receitaLiquida: number | null;
+    receitaBruta: number | null;
+    ocupacao: number | null;
+    noitesVendidas: number | null;
+    adr: number | null;
+    revpar: number | null;
+    lucroLiquido: number | null;
+    gastos: number | null;
+    margem: number | null;
+  };
+  avaliacao: { media: number | null; total: number };
+}
+
 export interface ConfigDTO {
   id: string;
   saldoInicialCaixa: number;
