@@ -299,6 +299,21 @@ export interface AnalyticsResposta {
   semDados: boolean;
 }
 
+export type ImpactoInsight = "alto" | "medio" | "baixo";
+
+export interface InsightDTO {
+  titulo: string;
+  descricao: string;
+  acao: string;
+  impacto: ImpactoInsight;
+}
+
+export interface SugestaoDiaria {
+  min: number;
+  max: number;
+  justificativa: string;
+}
+
 export interface ConfigDTO {
   id: string;
   saldoInicialCaixa: number;
