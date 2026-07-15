@@ -175,3 +175,36 @@ export const despesaUpdateSchema = despesaCreateSchema.partial();
 
 export type DespesaCreateInput = z.infer<typeof despesaCreateSchema>;
 export type DespesaUpdateInput = z.infer<typeof despesaUpdateSchema>;
+
+// ---------- Avaliação ----------
+
+export const avaliacaoCreateSchema = z.object({
+  imovelId: z.string().min(1, "Escolha o chalé."),
+  reservaId: z
+    .string()
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+  hospedeNome: z.string().trim().min(1, "Informe o nome do hóspede."),
+  plataforma: zPlataforma,
+  nota: z.coerce
+    .number()
+    .int()
+    .min(1, "A nota vai de 1 a 5.")
+    .max(5, "A nota vai de 1 a 5."),
+  data: dataISO,
+  comentario: z
+    .string()
+    .trim()
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+  respostaEnviada: z
+    .string()
+    .trim()
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+});
+
+export const avaliacaoUpdateSchema = avaliacaoCreateSchema.partial();
+
+export type AvaliacaoCreateInput = z.infer<typeof avaliacaoCreateSchema>;
+export type AvaliacaoUpdateInput = z.infer<typeof avaliacaoUpdateSchema>;

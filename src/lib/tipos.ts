@@ -199,6 +199,67 @@ export interface FinanceiroResposta {
   contasAPagar: DespesaDTO[];
 }
 
+export interface HospedeLinhaDTO {
+  id: string;
+  nome: string;
+  email: string | null;
+  telefone: string | null;
+  totalReservas: number;
+  /** RN06: a partir da 2ª reserva não cancelada */
+  recorrente: boolean;
+  totalGasto: number;
+  status: "ATIVO" | "FUTURO" | "CANCELADO";
+  ultimaEstadia: {
+    checkin: string;
+    checkout: string;
+    noites: number;
+    imovelNome: string;
+    plataforma: PlataformaValor;
+  } | null;
+}
+
+export interface HospedesResposta {
+  kpis: {
+    total: number;
+    novos: number;
+    recorrentes: number;
+    avaliacaoMedia: number | null;
+    totalAvaliacoes: number;
+  };
+  hospedes: HospedeLinhaDTO[];
+  origemPorPlataforma: { plataforma: PlataformaValor; quantidade: number }[];
+  recorrentesTop3: { id: string; nome: string; totalGasto: number }[];
+  proximasChegadas: {
+    id: string;
+    hospedeNome: string;
+    imovelNome: string;
+    checkin: string;
+  }[];
+}
+
+export interface AvaliacaoDTO {
+  id: string;
+  imovelId: string;
+  reservaId: string | null;
+  hospedeNome: string;
+  plataforma: PlataformaValor;
+  nota: number;
+  data: string; // yyyy-mm-dd
+  comentario: string | null;
+  respostaEnviada: string | null;
+  imovelNome: string;
+}
+
+export interface AvaliacoesResposta {
+  resumo: {
+    media: number | null;
+    total: number;
+    /** distribuição 5→1 */
+    distribuicao: { nota: number; quantidade: number; pct: number }[];
+  };
+  avaliacoes: AvaliacaoDTO[];
+}
+
 export interface ConfigDTO {
   id: string;
   saldoInicialCaixa: number;
