@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Users, UserPlus, Repeat, Star, Search, MoreHorizontal, CalendarDays } from "lucide-react";
+import { Users, UserPlus, Repeat, Star, Search, MoreHorizontal, CalendarDays, Download } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FiltrosPagina } from "@/components/layout/FiltrosPagina";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -93,7 +93,18 @@ export function HospedesView() {
 
   return (
     <>
-      <PageHeader titulo="Hóspedes" filtros={<FiltrosPagina />} />
+      <PageHeader
+        titulo="Hóspedes"
+        filtros={<FiltrosPagina />}
+        acoes={
+          <Button asChild variant="outline">
+            <a href="/api/relatorios/hospedes" download>
+              <Download className="h-4 w-4" />
+              Exportar lista
+            </a>
+          </Button>
+        }
+      />
 
       {/* 4 KPIs */}
       <div className="flex flex-wrap gap-5">

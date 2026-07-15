@@ -23,6 +23,7 @@ export function KpiCard({
   tom = "primary",
   delta,
   rodape,
+  sparkline,
 }: {
   rotulo: string;
   valor: string;
@@ -32,6 +33,8 @@ export function KpiCard({
   delta?: number | null;
   /** conteúdo alternativo ao delta (ex.: estrelas + Nº de avaliações) */
   rodape?: React.ReactNode;
+  /** sparkline opcional de 40px no rodapé do card (PRD §6.1) */
+  sparkline?: React.ReactNode;
 }) {
   const mostraDelta = delta !== undefined && rodape === undefined;
   const positivo = (delta ?? 0) >= 0;
@@ -74,6 +77,8 @@ export function KpiCard({
           )}
         </div>
       )}
+
+      {sparkline && <div className="h-10">{sparkline}</div>}
     </Card>
   );
 }

@@ -13,6 +13,7 @@ import {
   Pencil,
   Trash2,
   Receipt,
+  Download,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FiltrosPagina } from "@/components/layout/FiltrosPagina";
@@ -115,10 +116,18 @@ export function FinanceiroView() {
   if (!f) return null;
 
   const acoes = (
-    <Button onClick={abrirNovo}>
-      <Plus className="h-4 w-4" />
-      Novo lançamento
-    </Button>
+    <>
+      <Button asChild variant="outline">
+        <a href={`/api/relatorios/financeiro?mes=${mes}&ano=${ano}`} download>
+          <Download className="h-4 w-4" />
+          Exportar relatório
+        </a>
+      </Button>
+      <Button onClick={abrirNovo}>
+        <Plus className="h-4 w-4" />
+        Novo lançamento
+      </Button>
+    </>
   );
 
   // Estado vazio (PRD §10)
