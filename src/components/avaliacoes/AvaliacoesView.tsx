@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { Estrelas } from "@/components/common/Estrelas";
 import { PlataformaBadge } from "@/components/common/PlataformaBadge";
 import { FormAvaliacao } from "@/components/avaliacoes/FormAvaliacao";
+import { BotaoRespostaIA } from "@/components/ia/BotaoRespostaIA";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -124,6 +125,8 @@ export function AvaliacoesView() {
                 <p className="text-body text-strong">{a.respostaEnviada}</p>
               </div>
             )}
+
+            <BotaoRespostaIA avaliacao={a} />
           </Card>
         ))}
       </div>

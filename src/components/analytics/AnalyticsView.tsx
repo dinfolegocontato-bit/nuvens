@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -32,8 +33,10 @@ import { DonutPlataformas } from "@/components/dashboard/DonutPlataformas";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PainelInsights } from "@/components/ia/PainelInsights";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { formatBRL, formatNumero, formatPct } from "@/lib/formatters";
+import type { InsightDTO } from "@/lib/tipos";
 
 export function AnalyticsView() {
   const sp = useSearchParams();
@@ -42,6 +45,12 @@ export function AnalyticsView() {
   const ano = Number(sp.get("ano")) || agora.getFullYear();
 
   const { data: a, isLoading } = useAnalytics(mes, ano);
+  const [insights, setInsights] = useState<InsightDTO[] | null>(null);
+  // maior impacto primeiro: alto > medio > baixo
+  const ordem: Record<string, number> = { alto: 0, medio: 1, baixo: 2 };
+  const oportunidade = insights
+    ? [...insights].sort((x, y) => ordem[x.impacto] - ordem[y.impacto])[0]
+    : null;
 
   const acoes = (
     <Button asChild variant="outline">
@@ -177,18 +186,14 @@ export function AnalyticsView() {
           <BarrasDiasSemana dados={a.diasSemana} />
         </Card>
 
-        {/* Insights do período (IA — Fase 9) */}
-        <Card className="border-ia/30 bg-ia-soft/40">
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-ia-soft text-ia">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <CardTitle>Insights do período</CardTitle>
-          </div>
-          <p className="mt-2 text-legenda text-muted-foreground">
-            A análise com IA do período chega na próxima fase.
-          </p>
-        </Card>
+        {/* Insights do período (IA — PRD §7.1) */}
+        <PainelInsights
+          mes={mes}
+          ano={ano}
+          titulo="Insights do período"
+          colunas={1}
+          onInsights={setInsights}
+        />
       </div>
 
       {/* Linha 3 */}
@@ -230,7 +235,7 @@ export function AnalyticsView() {
           )}
         </Card>
 
-        {/* Oportunidade (IA — Fase 9) */}
+        {/* Oportunidade — reusa o insight de maior impacto já gerado (PRD §6.10) */}
         <Card className="border-ia/30 bg-ia-soft/40">
           <div className="flex items-center gap-2">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-ia-soft text-ia">
@@ -238,9 +243,22 @@ export function AnalyticsView() {
             </div>
             <CardTitle>Oportunidade</CardTitle>
           </div>
-          <p className="mt-2 text-legenda text-muted-foreground">
-            A sugestão gerada por IA chega na próxima fase.
-          </p>
+          {oportunidade ? (
+            <div className="mt-3">
+              <p className="text-h3 font-semibold text-strong">{oportunidade.titulo}</p>
+              <p className="mt-1 text-body text-muted-foreground">
+                {oportunidade.descricao}
+              </p>
+              <p className="mt-2 flex items-start gap-1.5 text-label text-primary-text">
+                <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                {oportunidade.acao}
+              </p>
+            </div>
+          ) : (
+            <p className="mt-2 text-legenda text-muted-foreground">
+              Gere os insights do período para ver a maior oportunidade aqui.
+            </p>
+          )}
         </Card>
       </div>
     </>

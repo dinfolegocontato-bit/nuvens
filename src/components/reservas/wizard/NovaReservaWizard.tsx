@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, Check, AlertCircle, CircleCheck, Info, ArrowLeft, ArrowRight, X, Home } from "lucide-react";
+import { Loader2, Check, AlertCircle, CircleCheck, Info, ArrowLeft, ArrowRight, X, Home, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,7 @@ import { formatBRL } from "@/lib/formatters";
 import { useImoveis } from "@/hooks/useImoveis";
 import { useConfig, taxaPorPlataforma } from "@/hooks/useConfig";
 import { useCriarReserva, buscarHospedePorEmail } from "@/hooks/useReservas";
+import { useSugerirDiaria } from "@/hooks/useIA";
 import { Stepper, PASSOS } from "./Stepper";
 import { ResumoReserva } from "./ResumoReserva";
 import {
@@ -587,7 +588,81 @@ function Passo4({
         A receita líquida é calculada automaticamente a partir da taxa da
         plataforma ({taxaPct}%).
       </div>
+
+      <SugerirDiariaIA form={form} set={set} />
     </>
+  );
+}
+
+/** §7.3 — Sugerir diária com IA. Nunca preenche sozinho: a Mariana clica em "Usar". */
+function SugerirDiariaIA({
+  form,
+  set,
+}: {
+  form: FormReserva;
+  set: <K extends keyof FormReserva>(c: K, v: FormReserva[K]) => void;
+}) {
+  const sugerir = useSugerirDiaria();
+  const pronto = !!form.imovelId && !!form.checkin && !!form.checkout && form.checkout > form.checkin;
+  const s = sugerir.data;
+  const sugerido = s ? Math.round((s.min + s.max) / 2) : 0;
+
+  const mensagemErro =
+    sugerir.error instanceof ApiError && sugerir.error.codigo === "IA_NAO_CONFIGURADA"
+      ? sugerir.error.message
+      : "Não deu para sugerir a diária agora. Tente de novo.";
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="self-start text-ia hover:bg-ia-soft"
+        disabled={!pronto || sugerir.isPending}
+        onClick={() =>
+          sugerir.mutate({
+            imovelId: form.imovelId,
+            checkin: form.checkin,
+            checkout: form.checkout,
+          })
+        }
+      >
+        {sugerir.isPending ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Sparkles className="h-4 w-4" />
+        )}
+        Sugerir diária com IA
+      </Button>
+
+      {sugerir.isError && (
+        <p className="flex items-center gap-2 text-legenda text-danger">
+          <AlertCircle className="h-3.5 w-3.5" />
+          {mensagemErro}
+        </p>
+      )}
+
+      {s && (
+        <div className="rounded-xl border border-ia/30 bg-ia-soft p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-label font-semibold text-ia">
+                Faixa sugerida: {formatBRL(s.min)} – {formatBRL(s.max)}
+              </p>
+              <p className="mt-0.5 text-legenda text-body/80">{s.justificativa}</p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => set("valorDiaria", String(sugerido))}
+            >
+              Usar {formatBRL(sugerido)}
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

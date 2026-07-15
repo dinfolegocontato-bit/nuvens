@@ -27,6 +27,7 @@ import { KpiCard } from "@/components/kpi/KpiCard";
 import { GraficoReceita } from "@/components/dashboard/GraficoReceita";
 import { DonutPlataformas } from "@/components/dashboard/DonutPlataformas";
 import { BarrasOcupacao } from "@/components/dashboard/BarrasOcupacao";
+import { PainelInsights } from "@/components/ia/PainelInsights";
 import { useMetricas } from "@/hooks/useMetricas";
 import { useImoveis } from "@/hooks/useImoveis";
 import { formatBRL, formatData, formatNumero, formatPct } from "@/lib/formatters";
@@ -182,20 +183,8 @@ export function DashboardView() {
         </Card>
       </div>
 
-      {/* Insights com IA (construído na Fase 9) */}
-      <Card className="border-ia/30 bg-ia-soft/40">
-        <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-ia-soft text-ia">
-            <Sparkles className="h-5 w-5" />
-          </div>
-          <div>
-            <CardTitle>Insights com IA</CardTitle>
-            <p className="text-legenda text-muted-foreground">
-              A análise do período com sugestões chega na próxima fase.
-            </p>
-          </div>
-        </div>
-      </Card>
+      {/* Painel de Insights com IA (PRD §6.2 rodapé / §7.1) */}
+      <PainelInsights mes={mes} ano={ano} />
     </>
   );
 }
