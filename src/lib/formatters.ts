@@ -23,16 +23,25 @@ export function formatPct(valor: number, casas = 1): string {
   return `${formatNumero(valor, casas)}%`;
 }
 
+/**
+ * Converte a entrada em Date local. Strings "yyyy-mm-dd" são interpretadas como
+ * data local (não UTC), evitando o "menos um dia" em fusos atrás de Greenwich.
+ */
+function paraDataLocal(data: Date | string): Date {
+  if (data instanceof Date) return data;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(data);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return new Date(data);
+}
+
 /** Data dd/mm/aaaa */
 export function formatData(data: Date | string): string {
-  const d = typeof data === "string" ? new Date(data) : data;
-  return format(d, "dd/MM/yyyy", { locale: ptBR });
+  return format(paraDataLocal(data), "dd/MM/yyyy", { locale: ptBR });
 }
 
 /** Data por extenso curta: 14 de jul. de 2026 */
 export function formatDataExtenso(data: Date | string): string {
-  const d = typeof data === "string" ? new Date(data) : data;
-  return format(d, "dd 'de' MMM 'de' yyyy", { locale: ptBR });
+  return format(paraDataLocal(data), "dd 'de' MMM 'de' yyyy", { locale: ptBR });
 }
 
 /** Delta com sinal para exibição: +12,3% / -4,0% */

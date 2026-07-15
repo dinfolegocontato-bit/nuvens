@@ -41,3 +41,90 @@ export const imovelUpdateSchema = imovelCreateSchema.partial();
 
 export type ImovelCreateInput = z.infer<typeof imovelCreateSchema>;
 export type ImovelUpdateInput = z.infer<typeof imovelUpdateSchema>;
+
+// ---------- Hóspede ----------
+
+const emailOpcional = z
+  .string()
+  .trim()
+  .email("Informe um e-mail válido.")
+  .optional()
+  .or(z.literal("").transform(() => undefined));
+
+export const hospedeCreateSchema = z.object({
+  nome: z.string().trim().min(1, "Informe o nome do hóspede."),
+  email: emailOpcional,
+  telefone: z.string().trim().optional().or(z.literal("").transform(() => undefined)),
+  documento: z.string().trim().optional().or(z.literal("").transform(() => undefined)),
+  observacoes: z.string().trim().optional().or(z.literal("").transform(() => undefined)),
+});
+
+export type HospedeCreateInput = z.infer<typeof hospedeCreateSchema>;
+
+// ---------- Reserva ----------
+
+const dataISO = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida.");
+
+const dinheiro = z.coerce.number().min(0, "Não pode ser negativo.");
+
+export const reservaCreateSchema = z
+  .object({
+    imovelId: z.string().min(1, "Escolha o chalé."),
+    plataforma: zPlataforma,
+    tipo: zTipoReserva,
+    status: zStatusReserva.default("CONFIRMADA"),
+    codigoExterno: z
+      .string()
+      .trim()
+      .optional()
+      .or(z.literal("").transform(() => undefined)),
+    // Hóspede (RN06: identificado por e-mail; vincula ou cria)
+    hospede: hospedeCreateSchema,
+    checkin: dataISO,
+    checkout: dataISO,
+    numeroHospedes: z.coerce
+      .number()
+      .int()
+      .min(1, "Pelo menos 1 hóspede."),
+    valorDiaria: z.coerce.number().min(0.01, "Informe o valor da diária."),
+    taxaLimpeza: dinheiro.default(0),
+    taxasServicos: dinheiro.default(0),
+    desconto: dinheiro.default(0),
+    observacoes: z
+      .string()
+      .trim()
+      .optional()
+      .or(z.literal("").transform(() => undefined)),
+  })
+  .refine((d) => d.checkout > d.checkin, {
+    // RN03: checkout > checkin
+    message: "O check-out precisa ser depois do check-in.",
+    path: ["checkout"],
+  });
+
+export type ReservaCreateInput = z.infer<typeof reservaCreateSchema>;
+
+// Edição: campos parciais (sem trocar o hóspede nesta fase)
+export const reservaUpdateSchema = z
+  .object({
+    plataforma: zPlataforma.optional(),
+    tipo: zTipoReserva.optional(),
+    status: zStatusReserva.optional(),
+    codigoExterno: z.string().trim().nullish(),
+    checkin: dataISO.optional(),
+    checkout: dataISO.optional(),
+    numeroHospedes: z.coerce.number().int().min(1).optional(),
+    valorDiaria: z.coerce.number().min(0.01).optional(),
+    taxaLimpeza: dinheiro.optional(),
+    taxasServicos: dinheiro.optional(),
+    desconto: dinheiro.optional(),
+    observacoes: z.string().trim().nullish(),
+  })
+  .refine(
+    (d) => !d.checkin || !d.checkout || d.checkout > d.checkin,
+    { message: "O check-out precisa ser depois do check-in.", path: ["checkout"] }
+  );
+
+export type ReservaUpdateInput = z.infer<typeof reservaUpdateSchema>;
