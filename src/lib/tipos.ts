@@ -77,7 +77,28 @@ export interface MetricasResposta {
     receitaDiaria: { dia: number; atual: number; anterior: number }[];
   };
   reservasPorPlataforma: { plataforma: PlataformaValor; quantidade: number }[];
-  ocupacaoPorChale: { imovel: string; ocupacao: number }[];
+  /** ocupação + receita por chalé ATIVO no mês (§6.2 e §6.6) */
+  ocupacaoPorChale: {
+    id: string;
+    imovel: string;
+    ocupacao: number;
+    receita: number;
+  }[];
+  /** KPIs da tela de Imóveis (§6.6) */
+  imoveisResumo: {
+    total: number;
+    ativos: number;
+    futuros: number;
+    gerandoReservas: number;
+  };
+  /** Próximas manutenções — bloqueios com motivo MANUTENCAO (§6.6) */
+  proximasManutencoes: {
+    id: string;
+    imovelNome: string;
+    inicio: string;
+    fim: string;
+    nota: string | null;
+  }[];
   proximasChegadas: {
     id: string;
     hospedeNome: string;

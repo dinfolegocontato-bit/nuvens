@@ -11,6 +11,11 @@ import {
   Plus,
   Trash2,
   Ban,
+  Download,
+  Moon,
+  Wallet,
+  LogIn,
+  LogOut,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -32,10 +37,13 @@ import {
   type FiltrosCalendario,
 } from "@/components/calendario/TimelineCalendario";
 import { FormBloqueio } from "@/components/calendario/FormBloqueio";
+import { MiniCalendario } from "@/components/calendario/MiniCalendario";
+import { KpiCard } from "@/components/kpi/KpiCard";
 import { useCalendario, useExcluirBloqueio } from "@/hooks/useCalendario";
 import { useMudarStatusReserva } from "@/hooks/useReservas";
+import { useMetricas } from "@/hooks/useMetricas";
 import { cn } from "@/lib/utils";
-import { formatBRL, formatData, rotuloPeriodo } from "@/lib/formatters";
+import { formatBRL, formatData, formatNumero, formatPct, rotuloPeriodo } from "@/lib/formatters";
 import { mesAnterior } from "@/lib/metricas";
 import type { CalendarioResposta } from "@/lib/tipos";
 
@@ -59,9 +67,12 @@ export function CalendarioView() {
   const ano = Number(sp.get("ano")) || agora.getFullYear();
 
   const { data, isLoading } = useCalendario(mes, ano);
+  // KPIs do rodapé vêm do servidor (regra 4)
+  const { data: m } = useMetricas(mes, ano);
   const excluirBloqueio = useExcluirBloqueio();
   const mudarStatus = useMudarStatusReserva();
 
+  const [visao, setVisao] = useState<"mes" | "semana">("mes");
   const [bloquearAberto, setBloquearAberto] = useState(sp.get("bloquear") === "1");
   const [reservaSel, setReservaSel] = useState<ReservaCal | null>(null);
   const [bloqueioSel, setBloqueioSel] = useState<BloqueioCal | null>(null);
@@ -104,7 +115,29 @@ export function CalendarioView() {
       <PageHeader
         titulo="Calendário"
         acoes={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Seletor Mês / Semana (PRD §6.8) */}
+            <div className="flex items-center gap-1 rounded-xl border border-border p-0.5">
+              {(
+                [
+                  ["mes", "Mês"],
+                  ["semana", "Semana"],
+                ] as const
+              ).map(([v, label]) => (
+                <button
+                  key={v}
+                  onClick={() => setVisao(v)}
+                  className={cn(
+                    "rounded-lg px-3 py-1.5 text-legenda transition-colors",
+                    visao === v
+                      ? "bg-primary-soft font-medium text-primary-text"
+                      : "text-muted-foreground hover:bg-app"
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             <div className="flex items-center gap-1 rounded-xl border border-border bg-surface p-0.5">
               <Button variant="ghost" size="icon" onClick={anterior} aria-label="Mês anterior">
                 <ChevronLeft className="h-4 w-4" />
@@ -118,6 +151,12 @@ export function CalendarioView() {
             </div>
             <Button variant="outline" onClick={hoje}>
               Hoje
+            </Button>
+            <Button variant="outline" asChild>
+              <a href={`/api/calendario/ics?mes=${mes}&ano=${ano}`} download>
+                <Download className="h-4 w-4" />
+                Exportar .ics
+              </a>
             </Button>
             <Button onClick={() => setBloquearAberto(true)} disabled={!temImoveis}>
               <CalendarX className="h-4 w-4" />
@@ -162,6 +201,7 @@ export function CalendarioView() {
               <TimelineCalendario
                 dados={data}
                 filtros={filtros}
+                visao={visao}
                 onReserva={setReservaSel}
                 onBloqueio={setBloqueioSel}
               />
@@ -178,6 +218,10 @@ export function CalendarioView() {
 
           {/* Coluna direita */}
           <div className="flex flex-col gap-5">
+            <Card>
+              <MiniCalendario dados={data} />
+            </Card>
+
             <Card>
               <CardTitle className="mb-3">Filtros rápidos</CardTitle>
               <div className="flex flex-col gap-2">
@@ -236,6 +280,43 @@ export function CalendarioView() {
               )}
             </Card>
           </div>
+        </div>
+      )}
+
+      {/* Faixa de 5 KPIs do mês (PRD §6.8) */}
+      {data && temImoveis && m && (
+        <div className="flex flex-wrap gap-5">
+          <Card className="flex min-w-[190px] flex-1 items-center gap-4">
+            <DonutOcupacao valor={m.atual.ocupacao} />
+            <div>
+              <p className="text-kpi-rotulo text-muted-foreground">Ocupação</p>
+              <p className="text-kpi-valor text-strong">{formatPct(m.atual.ocupacao)}</p>
+            </div>
+          </Card>
+          <KpiCard
+            rotulo="Noites reservadas"
+            valor={formatNumero(m.atual.noitesVendidas)}
+            icon={Moon}
+            tom="info"
+          />
+          <KpiCard
+            rotulo="Receita confirmada"
+            valor={formatBRL(m.atual.receitaLiquida)}
+            icon={Wallet}
+            tom="primary"
+          />
+          <KpiCard
+            rotulo="Check-ins"
+            valor={formatNumero(m.reservasResumo.checkins)}
+            icon={LogIn}
+            tom="ok"
+          />
+          <KpiCard
+            rotulo="Check-outs"
+            valor={formatNumero(m.reservasResumo.checkouts)}
+            icon={LogOut}
+            tom="warn"
+          />
         </div>
       )}
 
@@ -330,5 +411,28 @@ export function CalendarioView() {
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+/** Donut de ocupação para a faixa de KPIs do rodapé (PRD §6.8). */
+function DonutOcupacao({ valor }: { valor: number }) {
+  const pct = Math.max(0, Math.min(100, valor));
+  const raio = 26;
+  const circunferencia = 2 * Math.PI * raio;
+  return (
+    <svg width={64} height={64} viewBox="0 0 64 64" aria-hidden>
+      <circle cx="32" cy="32" r={raio} fill="none" stroke="var(--bg-app)" strokeWidth="8" />
+      <circle
+        cx="32"
+        cy="32"
+        r={raio}
+        fill="none"
+        stroke="var(--primary-text)"
+        strokeWidth="8"
+        strokeLinecap="round"
+        strokeDasharray={`${(pct / 100) * circunferencia} ${circunferencia}`}
+        transform="rotate(-90 32 32)"
+      />
+    </svg>
   );
 }

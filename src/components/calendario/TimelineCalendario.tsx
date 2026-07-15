@@ -47,17 +47,37 @@ function posicaoNoMes(
 export function TimelineCalendario({
   dados,
   filtros,
+  visao = "mes",
   onReserva,
   onBloqueio,
 }: {
   dados: CalendarioResposta;
   filtros: FiltrosCalendario;
+  /** "mes" = todos os dias; "semana" = a semana de hoje (ou a 1ª do mês) */
+  visao?: "mes" | "semana";
   onReserva: (r: CalendarioResposta["reservas"][number]) => void;
   onBloqueio: (b: CalendarioResposta["bloqueios"][number]) => void;
 }) {
   const { mes, ano, imoveis } = dados;
   const nDias = diasNoMes(mes, ano);
-  const dias = Array.from({ length: nDias }, (_, i) => i + 1);
+  const todosOsDias = Array.from({ length: nDias }, (_, i) => i + 1);
+
+  // Visão Semana: recorta 7 dias a partir do domingo da semana de hoje
+  // (ou do dia 1, se o mês exibido não é o corrente).
+  const agora = new Date();
+  const mesCorrente =
+    agora.getFullYear() === ano && agora.getMonth() + 1 === mes;
+  let primeiroDia = 1;
+  if (visao === "semana") {
+    if (mesCorrente) {
+      const diaSemana = new Date(Date.UTC(ano, mes - 1, agora.getDate())).getUTCDay();
+      primeiroDia = Math.max(1, agora.getDate() - diaSemana);
+    }
+  }
+  const dias =
+    visao === "semana"
+      ? todosOsDias.slice(primeiroDia - 1, primeiroDia - 1 + 7)
+      : todosOsDias;
 
   const hoje = new Date();
   const diaHoje =
@@ -65,8 +85,27 @@ export function TimelineCalendario({
       ? hoje.getDate()
       : null;
 
-  const template = `${LARGURA_IMOVEL}px repeat(${nDias}, minmax(${LARGURA_DIA}px, 1fr))`;
-  const minWidth = LARGURA_IMOVEL + nDias * LARGURA_DIA;
+  const template = `${LARGURA_IMOVEL}px repeat(${dias.length}, minmax(${LARGURA_DIA}px, 1fr))`;
+  const minWidth = LARGURA_IMOVEL + dias.length * LARGURA_DIA;
+
+  // Janela visível em números de dia (fim exclusivo)
+  const janelaIni = dias[0] ?? 1;
+  const janelaFimEx = (dias[dias.length - 1] ?? nDias) + 1;
+
+  /**
+   * Recorta o intervalo à janela visível e devolve as colunas do grid.
+   * Coluna 1 é o rótulo do imóvel, então o dia D vira a coluna (D - janelaIni + 2).
+   */
+  function colunasVisiveis(p: ReturnType<typeof posicaoNoMes>) {
+    const s = Math.max(p.start, janelaIni);
+    const e = Math.min(p.endEx, janelaFimEx);
+    if (e <= s) return null; // barra fora da janela (ex.: outra semana)
+    return {
+      gridColumn: `${s - janelaIni + 2} / ${e - janelaIni + 2}`,
+      continuaEsquerda: p.continuaEsquerda || p.start < janelaIni,
+      continuaDireita: p.continuaDireita || p.endEx > janelaFimEx,
+    };
+  }
 
   const ehFimDeSemana = (d: number) => {
     const wd = new Date(Date.UTC(ano, mes - 1, d)).getUTCDay();
@@ -146,7 +185,7 @@ export function TimelineCalendario({
                   ehFimDeSemana(d) && "bg-slate-50",
                   diaHoje === d && "bg-primary-soft/40"
                 )}
-                style={{ gridColumn: d + 1, gridRow: 1 }}
+                style={{ gridColumn: d - janelaIni + 2, gridRow: 1 }}
               />
             ))}
 
@@ -162,6 +201,8 @@ export function TimelineCalendario({
                   nDias
                 );
                 if (!p.visivel) return null;
+                const c = colunasVisiveis(p);
+                if (!c) return null;
                 const confirmada = r.status === "CONFIRMADA";
                 return (
                   <button
@@ -171,10 +212,10 @@ export function TimelineCalendario({
                     className={cn(
                       "z-10 mx-0.5 flex h-7 items-center gap-1.5 self-center overflow-hidden px-2 text-legenda font-medium text-white transition-opacity hover:opacity-90",
                       confirmada ? "bg-[var(--primary-text)]" : "bg-[var(--warn)]",
-                      p.continuaEsquerda ? "rounded-l-none" : "rounded-l-full",
-                      p.continuaDireita ? "rounded-r-none" : "rounded-r-full"
+                      c.continuaEsquerda ? "rounded-l-none" : "rounded-l-full",
+                      c.continuaDireita ? "rounded-r-none" : "rounded-r-full"
                     )}
-                    style={{ gridColumn: `${p.start + 1} / ${p.endEx + 1}`, gridRow: 1 }}
+                    style={{ gridColumn: c.gridColumn, gridRow: 1 }}
                   >
                     <PlataformaDot plataforma={r.plataforma} />
                     <span className="truncate">{r.hospedeNome}</span>
@@ -194,6 +235,8 @@ export function TimelineCalendario({
                   nDias
                 );
                 if (!p.visivel) return null;
+                const c = colunasVisiveis(p);
+                if (!c) return null;
                 const manutencao = b.motivo === "MANUTENCAO";
                 const cor = manutencao ? "var(--danger)" : "#94A3B8";
                 return (
@@ -203,11 +246,11 @@ export function TimelineCalendario({
                     title={b.nota ?? (manutencao ? "Manutenção" : "Bloqueio")}
                     className={cn(
                       "z-10 mx-0.5 flex h-7 items-center overflow-hidden px-2 text-legenda font-medium text-white",
-                      p.continuaEsquerda ? "rounded-l-none" : "rounded-l-full",
-                      p.continuaDireita ? "rounded-r-none" : "rounded-r-full"
+                      c.continuaEsquerda ? "rounded-l-none" : "rounded-l-full",
+                      c.continuaDireita ? "rounded-r-none" : "rounded-r-full"
                     )}
                     style={{
-                      gridColumn: `${p.start + 1} / ${p.endEx + 1}`,
+                      gridColumn: c.gridColumn,
                       gridRow: 1,
                       alignSelf: "center",
                       backgroundImage: `repeating-linear-gradient(45deg, ${cor}, ${cor} 6px, rgba(255,255,255,.35) 6px, rgba(255,255,255,.35) 12px)`,

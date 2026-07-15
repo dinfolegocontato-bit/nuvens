@@ -46,10 +46,13 @@ const PADRAO: ImovelCreateInput = {
 
 export function FormImovel({
   imovel,
+  statusInicial = "ATIVO",
   open,
   onOpenChange,
 }: {
   imovel?: ImovelDTO | null;
+  /** status pré-selecionado ao criar (o card "Criar novo projeto" abre como FUTURO) */
+  statusInicial?: "ATIVO" | "FUTURO";
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
@@ -83,9 +86,9 @@ export function FormImovel({
         plataformas: imovel.plataformas,
       });
     } else {
-      reset(PADRAO);
+      reset({ ...PADRAO, status: statusInicial });
     }
-  }, [open, imovel, reset]);
+  }, [open, imovel, statusInicial, reset]);
 
   async function onSubmit(dados: ImovelCreateInput) {
     if (editando && imovel) {

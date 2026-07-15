@@ -9,6 +9,7 @@ import {
   diasNoMes,
   paraDataUTC,
   valorTotalReserva,
+  valorLiquidoReserva,
   receitaLiquidaPorDia,
   type ReservaCalc,
   type DespesaCalc,
@@ -52,8 +53,17 @@ export async function calcularMetricas(
   const hoje = new Date();
   const hojeUTC = new Date(Date.UTC(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()));
 
-  const [imoveisAtivos, reservasRaw, despesasRaw, config, avaliacoes, chegadasRaw, contasRaw] =
-    await Promise.all([
+  const [
+    imoveisAtivos,
+    reservasRaw,
+    despesasRaw,
+    config,
+    avaliacoes,
+    chegadasRaw,
+    contasRaw,
+    todosImoveis,
+    manutencoesRaw,
+  ] = await Promise.all([
       prisma.imovel.findMany({
         where: { status: "ATIVO" },
         select: { id: true, nome: true },
@@ -96,6 +106,15 @@ export async function calcularMetricas(
         orderBy: { data: "asc" },
         take: 8,
         select: { id: true, descricao: true, valor: true, data: true, status: true },
+      }),
+      // Todos os chalés (para os KPIs de Imóveis — §6.6)
+      prisma.imovel.findMany({ select: { status: true } }),
+      // Próximas manutenções (§6.6)
+      prisma.bloqueio.findMany({
+        where: { motivo: "MANUTENCAO", fim: { gte: hojeUTC } },
+        orderBy: { inicio: "asc" },
+        take: 5,
+        include: { imovel: { select: { nome: true } } },
       }),
     ]);
 
@@ -183,17 +202,35 @@ export async function calcularMetricas(
     };
   });
 
-  // Ocupação por chalé
+  // Ocupação + receita por chalé (§6.2 e §6.6)
   const diasMes = diasNoMes(mes, ano);
   const ocupacaoPorChale = imoveisAtivos.map((im) => {
-    const noitesChale = doMes
-      .filter((r) => r.imovelId === im.id)
-      .reduce((s, r) => s + noitesNoMes(r.checkin, r.checkout, mes, ano), 0);
+    const doChale = doMes.filter((r) => r.imovelId === im.id);
+    const noitesChale = doChale.reduce(
+      (s, r) => s + noitesNoMes(r.checkin, r.checkout, mes, ano),
+      0
+    );
+    // receita líquida rateada pelas noites que caem no mês (mesma regra dos agregados)
+    const receita = doChale.reduce((s, r) => {
+      const nTot = noites(r.checkin, r.checkout);
+      const fracao = nTot > 0 ? noitesNoMes(r.checkin, r.checkout, mes, ano) / nTot : 0;
+      return s + valorLiquidoReserva(r) * fracao;
+    }, 0);
     return {
+      id: im.id,
       imovel: im.nome,
       ocupacao: diasMes > 0 ? (noitesChale / diasMes) * 100 : 0,
+      receita,
     };
   });
+
+  // KPIs da tela de Imóveis (§6.6)
+  const imoveisResumo = {
+    total: todosImoveis.length,
+    ativos: todosImoveis.filter((i) => i.status === "ATIVO").length,
+    futuros: todosImoveis.filter((i) => i.status === "FUTURO").length,
+    gerandoReservas: new Set(doMes.map((r) => r.imovelId)).size,
+  };
 
   const total = avaliacoes.length;
   const media = total > 0 ? avaliacoes.reduce((s, a) => s + a.nota, 0) / total : null;
@@ -237,6 +274,14 @@ export async function calcularMetricas(
     })),
     reservasResumo,
     reservasPorMes,
+    imoveisResumo,
+    proximasManutencoes: manutencoesRaw.map((b) => ({
+      id: b.id,
+      imovelNome: b.imovel.nome,
+      inicio: iso(b.inicio),
+      fim: iso(b.fim),
+      nota: b.nota,
+    })),
     proximaChegada: chegadasRaw[0]
       ? {
           id: chegadasRaw[0].id,
